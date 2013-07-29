@@ -1,0 +1,11 @@
+# Cmake files
+cmake_install.cmake
+CMakeFiles/
+Makefile
+CMakeCache.txt
+
+# Vim swapfiles
+*.swp
+
+# Out of source build folder
+build*/
