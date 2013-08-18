@@ -1,24 +1,23 @@
 
 
 #include "ResourceManager.h"
-#include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/barrier.hpp>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <vector>
 #include <set>
 
 
 struct ResourceManager::Internal
 {
-	bool                      running;
-	unsigned                  thread_count;
-	vector<boost::thread*>    threads;
-	list<Image*>              queue;
-	set<Image*>               queue_working;
-	boost::mutex              queue_mutex;
-	boost::mutex              worker_mutex;
-	boost::condition_variable worker_cond;
+	bool               running;
+	unsigned           thread_count;
+	vector<thread*>    threads;
+	list<Image*>       queue;
+	set<Image*>        queue_working;
+	mutex              queue_mutex;
+	mutex              worker_mutex;
+	condition_variable worker_cond;
 	
 	     Internal  ();
 	     ~Internal ();
@@ -45,13 +44,13 @@ ResourceManager::Internal::Internal ()
 	running = true;
 	
 	// Get number of execution units (CPU cores or hyperthreading cores)
-	thread_count = boost::thread::hardware_concurrency();
+	thread_count = thread::hardware_concurrency();
 	cout << "ResourceManager: Using " << thread_count << " threads" << endl;
 	
 	// Init threads
 	threads.resize(thread_count);
 	for (unsigned i=0; i!=thread_count; ++i)
-		threads[i] = new boost::thread(boost::bind(&ResourceManager::Internal::worker, this));
+		threads[i] = new thread(bind(&ResourceManager::Internal::worker, this));
 }
 
 ResourceManager::Internal::~Internal ()
@@ -77,7 +76,7 @@ void ResourceManager::Internal::worker ()
 		if (!did_something)
 		{
 			// Wait for a signal to go
-			boost::unique_lock<boost::mutex> worker_lock(worker_mutex);
+			unique_lock<mutex> worker_lock(worker_mutex);
 			worker_cond.wait(worker_lock);
 		}
 		did_something = false;

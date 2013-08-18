@@ -1,16 +1,33 @@
 
 
-# Suppress switch warnings
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+
+#########################################################
+# Compiler specific flags
+#########################################################
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch")
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+endif()
+
+message("CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
 message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
+
+
+#########################################################
+# Define the executable
+#########################################################
+
 set(target_NAME glide)
+
 add_executable(${target_NAME}
-	Mutex.cpp
 	Edit.cpp
 	ResourceManager.cpp
 	Image.cpp
@@ -22,9 +39,9 @@ add_executable(${target_NAME}
 	Layout.cpp
 	Main.cpp
 )
+
 target_link_libraries(${target_NAME}
 	${SFML_LIBRARIES}
-	${Boost_THREAD_LIBRARY}
 	${Boost_SYSTEM_LIBRARY}
 	${Boost_FILESYSTEM_LIBRARY}
 	${JPEG_LIBRARY}
@@ -39,3 +56,6 @@ target_link_libraries(${target_NAME}
 #	"${PROJECT_SOURCE_DIR}/data"
 #	$<TARGET_FILE_DIR:${target_NAME}>
 #)
+
+
+

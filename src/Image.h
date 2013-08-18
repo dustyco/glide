@@ -4,11 +4,12 @@
 #include "common.h"
 #include "Frame.h"
 #include "Edit.h"
-#include "Mutex.h"
+#include <mutex>
+#include <memory>
 #include <vector>
 
 
-struct Image : Frame, Edit, Mutex, NonCopyable
+struct Image : Frame, Edit, NonCopyable, mutex
 {
 	struct CompareName { bool operator () (const Image* lhs, const Image* rhs) { return lhs->path < rhs->path; } };
 	
@@ -27,11 +28,11 @@ struct Image : Frame, Edit, Mutex, NonCopyable
 	Vec2i  dim_full;
 	
 	// Load data
-	// If loading is true, do not touch pixels, dim_loaded, or jpeg_scale even if the mutex is locked
+	// If loading is true, do not touch pixels, dim_loaded, or jpeg_scale even while the mutex is locked
 	bool     loaded, loading, failed;
-	uint8_t* pixels;     // Protected by loading, not mutex
-	Vec2i    dim_loaded; // Protected by loading, not mutex
-	int      jpeg_scale; // Protected by loading, not mutex
+	uint8_t* pixels;     // Protected by loading flag, not mutex
+	Vec2i    dim_loaded; // Protected by loading flag, not mutex
+	int      jpeg_scale; // Protected by loading flag, not mutex
 	
 	// Texture data (sf::Texture, hidden to save the unnecessary header)
 	// NULL when not present
@@ -49,5 +50,7 @@ struct Image : Frame, Edit, Mutex, NonCopyable
 	void unload         ();
 	void resourceUpdate ();
 };
+
+typedef shared_ptr<Image*> ImagePtr;
 
 

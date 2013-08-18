@@ -3,11 +3,11 @@
 #pragma once
 #include "common.h"
 #include "Frame.h"
-#include "Mutex.h"
+#include <mutex>
 
 
 // TODO Needs to be set by something
-struct Camera : Frame, Mutex, NonCopyable
+struct Camera : Frame, NonCopyable, mutex
 {
 	Vec2i dim;
 	

@@ -80,7 +80,7 @@ void Image::createImages (vector<Image*>& images, string path) throw(string)
 				string file_path = path + "/" + file_name;
 				
 				// Skip blank or hidden
-				if (file_name.empty() || file_name[0] == '.') break;
+				if (file_name.empty() || (file_name[0] == '.')) break;
 				
 				// Try to get header info
 				int w, h;

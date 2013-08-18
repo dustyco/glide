@@ -30,20 +30,50 @@ void Layout::arrange ()
 	
 	// Move Images
 	int i = 0;
-	for (vector<Image*>::iterator it=images.begin(); it!=images.end(); ++it)
+	int dim = sqrt(images.size());
+	for (int y=0; y!=dim; ++y)
+	for (int x=0; x!=dim; ++x)
 	{
-		Image& image = *(*it);
-		image.lock();
-		image.visible = true;
-		image.target.p = Vec2f::ORIGIN + Vec2f(cos(t)/5, sin(t)/5+float(i)/4-0.5);;
-		image.target.rx = (sin(t/5)/2+0.5)*1.0*image.dim_full.x/image.dim_full.y;
-		image.target.ry = (sin(t/5)/2+0.5)*1;
-		image.tween(1);
-		image.unlock();
+		Image* image_ptr = images[y*dim + x];
+		{
+			Image& image = *image_ptr;
+			unique_lock<mutex> l(image);
+			image.visible = true;
+			
+//			image.target.p = Vec2f::ORIGIN + Vec2f(cos(t)/5, sin(t)/5+float(i)/4-0.5);
+//			image.target.rx = (sin(-t/5)/2+0.5)*1.0*image.dim_full.x/image.dim_full.y;
+//			image.target.ry = (sin(-t/5)/2+0.5)*1;
+			
+			image.target.p = Vec2f(-1.0 + 2.0*x/dim + 1.0/dim, -1.0 + 2.0*y/dim + 1.0/dim);
+			image.target.rx = 1.0*image.dim_full.x/image.dim_full.y/dim;
+			image.target.ry = 1.0/dim;
+			
+			image.tween(1);
+		}
 		
-		res_man.submit(*it);
+		res_man.submit(image_ptr);
 		++i;
 	}
+	
+	
+/*	int i = 0;
+	for (Image* image_ptr : images)
+	{
+		{
+			// Lock while we edit it
+			Image& image = *image_ptr;
+			unique_lock<mutex> l(image);
+			image.visible = true;
+			image.target.p = Vec2f::ORIGIN + Vec2f(cos(t)/5, sin(t)/5+float(i)/4-0.5);;
+			image.target.rx = (sin(t/5)/2+0.5)*1.0*image.dim_full.x/image.dim_full.y;
+			image.target.ry = (sin(t/5)/2+0.5)*1;
+			image.tween(1);
+		}
+		
+		res_man.submit(image_ptr);
+		++i;
+	}
+*/
 }
 
 void Layout::getVisible (vector<Image*>& images)
