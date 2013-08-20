@@ -5,9 +5,15 @@
 #include <cmath>
 #include <jpeglib.h>
 
+#include <mutex>
+#include <iostream>
+mutex term;
 
 void Image::loadJpeg (string path, int x_preferred) throw(string)
 {
+//	lock_guard<mutex> l(term);
+//	cout << path << endl;
+	
 	using namespace std;
 	
 	FILE* file;
@@ -60,9 +66,12 @@ void Image::loadJpeg (string path, int x_preferred) throw(string)
 	for (JSAMPLE* row=output; row!=output+image_stride; row+=row_stride)
 	{
 		// TODO Periodically check to see if the image is still visible and cancel if not
-		jpeg_read_scanlines(&d, &row, 1);
+		if (jpeg_read_scanlines(&d, &row, 1) != 1)
+			throw string("Image::readJpeg(): Failed to decode correct number of scanlines");
 	}
-	jpeg_finish_decompress(&d);
+	
+	if (!jpeg_finish_decompress(&d))
+		throw string("Image::readJpeg(): jpeg_finish_decompress returned false");
 	
 	// Clean up
 	jpeg_destroy_decompress(&d);

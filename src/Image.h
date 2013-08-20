@@ -9,15 +9,20 @@
 #include <vector>
 
 
+
+// Safe way to handle references to an Image
+struct Image;
+typedef shared_ptr<Image> ImagePtr;
+typedef vector<ImagePtr> ImageVec;
+
 struct Image : Frame, Edit, NonCopyable, mutex
 {
-	struct CompareName { bool operator () (const Image* lhs, const Image* rhs) { return lhs->path < rhs->path; } };
+	struct CompareName { bool operator () (const ImagePtr lhs, const ImagePtr rhs) { return lhs->path < rhs->path; } };
 	
 	enum Format { JPEG, GIF, PNG, BMP };
 	
 	// Static functions
-	static void createImages       (vector<Image*>& images, string path) throw(string);
-	static void destroyImages      (vector<Image*>& images);
+	static void createImages       (vector<ImagePtr>& images, string path) throw(string);
 	static void readFileInfo       (string path, Format& format, int& x, int& y) throw(string);
 	static int  getJpegDecodeScale (int current, int desired);
 	static void rgbToRgba          (uint8_t* in, uint8_t* out, Vec2i dim);
@@ -50,7 +55,5 @@ struct Image : Frame, Edit, NonCopyable, mutex
 	void unload         ();
 	void resourceUpdate ();
 };
-
-typedef shared_ptr<Image*> ImagePtr;
 
 

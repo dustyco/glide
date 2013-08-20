@@ -13,8 +13,8 @@ struct ResourceManager::Internal
 	bool               running;
 	unsigned           thread_count;
 	vector<thread*>    threads;
-	list<Image*>       queue;
-	set<Image*>        queue_working;
+	list<ImagePtr>     queue;
+	set<ImagePtr>      queue_working;
 	mutex              queue_mutex;
 	mutex              worker_mutex;
 	condition_variable worker_cond;
@@ -28,7 +28,7 @@ struct ResourceManager::Internal
 ResourceManager::ResourceManager () { i = new Internal; }
 ResourceManager::~ResourceManager () { delete i; }
 
-void ResourceManager::submit (Image* image)
+void ResourceManager::submit (ImagePtr image)
 {
 	// Add the image to queue
 	i->queue_mutex.lock();
@@ -85,10 +85,10 @@ void ResourceManager::Internal::worker ()
 		if (!running) return;
 		
 		// Pick the first visible image
-		Image* image;
+		ImagePtr image;
 		bool got_one = false;
 		queue_mutex.lock();
-		for (list<Image*>::iterator it=queue.begin(); it!=queue.end(); ++it)
+		for (list<ImagePtr>::iterator it=queue.begin(); it!=queue.end(); ++it)
 		{
 			// Skip if another thread has it
 			if (queue_working.find(*it) != queue_working.end()) continue;

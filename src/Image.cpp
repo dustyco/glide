@@ -61,9 +61,9 @@ void Image::saveEdit ()
 	catch (string s) {}
 }
 
-void Image::createImages (vector<Image*>& images, string path) throw(string)
+void Image::createImages (vector<ImagePtr>& images, string path) throw(string)
 {
-	destroyImages(images);
+	images.clear();
 	
 	DIR*    dir = opendir(path.c_str());
 	dirent* dir_entry;
@@ -92,8 +92,7 @@ void Image::createImages (vector<Image*>& images, string path) throw(string)
 				if (format!=JPEG) break;
 				
 				// Add it
-				Image* image = new Image(file_path, format, Vec2i(w, h));
-				images.push_back(image);
+				images.push_back(make_shared<Image>(file_path, format, Vec2i(w, h)));
 				break;
 		}
 	}
@@ -101,12 +100,6 @@ void Image::createImages (vector<Image*>& images, string path) throw(string)
     
     // Sort by name
 	sort(images.begin(), images.end(), CompareName());
-}
-
-void Image::destroyImages (vector<Image*>& images)
-{
-	for (std::vector<Image*>::iterator it=images.begin(); it!=images.end(); ++it)
-		delete *it;
 }
 
 // Considers the difference between cooresponding

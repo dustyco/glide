@@ -18,12 +18,10 @@ bool Main::setup ()
 	}
 */	
 	// Init camera dimensions BEFORE the first Layout::tick()
-	camera.lock();
 	camera.dim = Vec2i(window.getSize().x, window.getSize().y);
-	camera.unlock();
 	
 	// Add images from this folder
-	vector<Image*> images;
+	vector<ImagePtr> images;
 	Image::createImages(images, ".");
 	layout.add(images);
 	
@@ -36,11 +34,6 @@ bool Main::loop (int w, int h, double t)
 {
 	Camera& camera = Camera::getSingleton();
 	
-	// Update camera dimensions
-	camera.lock();
-	camera.dim = Vec2i(w, h);
-	camera.unlock();
-	
 	// Input
 	handleInput();
 	
@@ -49,20 +42,21 @@ bool Main::loop (int w, int h, double t)
 	layout.tick(1.0/60.0);
 	
 	// Update viewport
-	camera.lock();
 	sf::View view;
-	view.reset(sf::FloatRect(
-		camera.current.p.x - camera.current.rx,
-		camera.current.p.y - camera.current.ry,
-		camera.current.rx*2,
-		camera.current.ry*2
-	));
-	camera.unlock();
+	{
+		lock_guard<mutex> l(camera);
+		view.reset(sf::FloatRect(
+			camera.current.p.x - camera.current.rx,
+			camera.current.p.y - camera.current.ry,
+			camera.current.rx*2,
+			camera.current.ry*2
+		));
+	}
 	view.setViewport(sf::FloatRect(0, 0, 1, 1));
 	window.setView(view);
 	
 	// Draw visible images
-	vector<Image*> images;
+	vector<ImagePtr> images;
 	layout.getVisible(images);
 	draw(images);
 	
@@ -96,6 +90,7 @@ bool Main::cleanup ()
 
 void Main::handleInput ()
 {
+	Camera& camera = Camera::getSingleton();
 	Controls& c = Controls::getSingleton();
 	float dt = 1.0/60.0;
 	
@@ -110,7 +105,12 @@ void Main::handleInput ()
 			case sf::Event::Closed:             running = false; return;
 			case sf::Event::LostFocus:          c.clear(); window_focused = false; break;
 			case sf::Event::GainedFocus:        window_focused = true; break;
-//			case sf::Event::Resized:            break;
+			case sf::Event::Resized:
+				// Update camera dimensions
+				camera.lock();
+				camera.dim = Vec2i(event.size.width, event.size.height);
+				camera.unlock();
+				break;
 //			case sf::Event::MouseMoved:         event.mouseMove.x; break;
 			case sf::Event::MouseButtonPressed:
 				switch (event.mouseButton.button)
@@ -135,34 +135,38 @@ void Main::handleInput ()
 	// These will grab the state even if the window isn't focused so we have to check
 	if (!window_focused) return;
 	
-	c.up.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W), dt);
-	c.down.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S), dt);
-	c.left.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A), dt);
-	c.right.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D), dt);
+	c.buttons["up"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W), dt);
+	c.buttons["down"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S), dt);
+	c.buttons["left"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A), dt);
+	c.buttons["right"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D), dt);
 	
-	c.mouse_select.set(sf::Mouse::isButtonPressed(sf::Mouse::Left), dt);
-	c.mouse_context.set(sf::Mouse::isButtonPressed(sf::Mouse::Right), dt);
+	c.buttons["mouse_select"].set(sf::Mouse::isButtonPressed(sf::Mouse::Left), dt);
+	c.buttons["mouse_context"].set(sf::Mouse::isButtonPressed(sf::Mouse::Right), dt);
 	
-	c.lanes1.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1), dt);
-	c.lanes2.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2), dt);
-	c.lanes3.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num3), dt);
-	c.lanes4.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num4), dt);
+	c.buttons["lanes1"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1), dt);
+	c.buttons["lanes2"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2), dt);
+	c.buttons["lanes3"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num3), dt);
+	c.buttons["lanes4"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num4), dt);
+	c.buttons["lanes5"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num5), dt);
+	c.buttons["lanes6"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num6), dt);
+	c.buttons["lanes7"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num7), dt);
+	c.buttons["lanes8"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num8), dt);
+	c.buttons["lanes9"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num9), dt);
 	
-	c.edit.set(sf::Keyboard::isKeyPressed(sf::Keyboard::E), dt);
-	c.key_select.set(sf::Keyboard::isKeyPressed(sf::Keyboard::Return), dt);
+	c.buttons["toggle_edit"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::E), dt);
+	c.buttons["select"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Return), dt);
 	
 //	sf::Vector2i sf_mouse_pos = sf::Mouse::getPosition(window);
 //	mouse = viewTransformInverse(Vec(sf_mouse_pos.x, sf_mouse_pos.y));
 }
 
-void Main::draw (vector<Image*>& images)
+void Main::draw (vector<ImagePtr>& images)
 {
 //	cout << endl << "Rendering " << images.size() << " images" << endl;
-	typedef vector<Image*> ImageVec;
-	for (ImageVec::iterator it=images.begin(); it!=images.end(); ++it)
+	for (ImagePtr& image_ptr : images)
 	{
-		Image& image = *(*it);
-		image.lock();
+		Image& image = *image_ptr;
+		lock_guard<mutex> l(image);
 		
 		/////////////////////////////////////////////////////////////////
 		// Create/resize texture if necessary and new pixels aren't loading
@@ -214,8 +218,6 @@ void Main::draw (vector<Image*>& images)
 			window.draw(sprite);
 			
 		}
-		
-		image.unlock();
 	}
 }
 
@@ -229,7 +231,7 @@ int main (int argc, char const** argv)
 	}
 	catch (string s)
 	{
-		cout << s << endl;
+		cout << "Uncaught string exception: " << s << endl;
 	}
 	catch (...)
 	{

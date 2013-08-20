@@ -7,13 +7,15 @@
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
 message("CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")

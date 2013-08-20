@@ -79,6 +79,7 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 
 find_package(JPEG REQUIRED)
 include_directories(${JPEG_INCLUDE_DIR})
+message("JPEG_LIBRARY: ${JPEG_LIBRARY}")
 
 
 

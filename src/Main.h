@@ -18,7 +18,7 @@ struct Main : SFMLApp
 	virtual bool cleanup     ();
 	
 	void handleInput ();
-	void draw        (vector<Image*>& images);
+	void draw        (vector<ImagePtr>& images);
 };
 
 

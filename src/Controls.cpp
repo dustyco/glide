@@ -27,25 +27,12 @@ void Controls::Button::set (bool pressed, float dt)
 Controls::Controls ()
 {
 	clear();
+	mouse_screen = Vec2f(0.5, 0.5);
 }
 
 void Controls::clear ()
 {
-	up.clear();
-	down.clear();
-	left.clear();
-	right.clear();
-	
-	mouse_select.clear();
-	mouse_context.clear();
-	
-	lanes1.clear();
-	lanes2.clear();
-	lanes3.clear();
-	lanes4.clear();
-	
-	edit.clear();
-	key_select.clear();
+	for (auto& pair : buttons) pair.second.clear();
 }
 
 Controls& Controls::getSingleton ()

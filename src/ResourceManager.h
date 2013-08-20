@@ -9,7 +9,7 @@ struct ResourceManager : NonCopyable
 {
 	     ResourceManager  ();
 	     ~ResourceManager ();
-	void submit           (Image* image);
+	void submit           (ImagePtr image);
 	
 private:
 	struct Internal;

@@ -1,6 +1,7 @@
 
 
 #include "common.h"
+#include <map>
 
 
 struct Controls
@@ -10,17 +11,14 @@ struct Controls
 		bool  pressed;
 		float duration;
 		
-		     Button ();
-		void clear  ();
-		void set    (bool pressed, float dt);
+		     Button    ();
+		void clear     ();
+		void set       (bool pressed, float dt);
+//		int  getRepeat (float speed = 1.0f); TODO
 	};
 	
-	Button up, down, left, right;
-	Button mouse_select, mouse_context;
-	Button lanes1, lanes2, lanes3, lanes4;
-	Button edit, key_select;
-	
-	Vec2f mouse_screen;
+	map<string,Button> buttons;
+	Vec2f              mouse_screen;
 	
 	     Controls ();
 	void clear    ();

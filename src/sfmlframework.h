@@ -136,8 +136,10 @@ bool SFMLApp::_setup () {
 		cerr << "Invalid video mode?" << endl;
 		return false;
 	}
-//	window.create( video_mode, window_title, sf::Style::Fullscreen | sf::Style::Close );
-	window.create( video_mode, window_title, sf::Style::Resize | sf::Style::Close );
+	sf::ContextSettings settings;
+	settings.antialiasingLevel = 8;
+//	window.create( video_mode, window_title, sf::Style::Fullscreen | sf::Style::Close, settings );
+	window.create( video_mode, window_title, sf::Style::Resize | sf::Style::Close, settings );
 	window.setVerticalSyncEnabled(true);
 	window.setMouseCursorVisible(true);
 	

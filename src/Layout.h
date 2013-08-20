@@ -9,21 +9,22 @@
 
 struct Layout
 {
-	struct Lane
-	{
-		list<Image*> images;
-	};
+	enum Mode { HORIZONTAL, VERTICAL };
 	
-	ResourceManager res_man;
-	vector<Image*>  images;
-	vector<Lane>    lanes;
-	bool            vertical;
-	float           t;
-	
-	void add        (vector<Image*>& images);
+	     Layout     ();
+	void add        (vector<ImagePtr>& images);
 	void tick       (float dt);
+	void getVisible (vector<ImagePtr>& images);
+
+private:
+	ResourceManager           res_man;
+	vector<ImagePtr>          images;
+	vector<vector<ImagePtr> > lanes;
+	float                     t;
+	Mode                      mode;
+	int                       lane_count;
+	
 	void arrange    ();
-	void getVisible (vector<Image*>& images);
 	void calculate  (bool vertical, int lanes);
 };
 
