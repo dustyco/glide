@@ -10,18 +10,30 @@ Controls::Button::Button ()
 
 void Controls::Button::clear ()
 {
-	pressed = false;
+	presses = 0;
+	is_pressed = false;
 	duration = 0;
 }
 
-void Controls::Button::set (bool pressed, float dt)
+void Controls::Button::set (bool is_pressed, float dt)
 {
-	if (pressed)
+	if (is_pressed)
 	{
-		this->pressed = true;
+		this->is_pressed = true;
 		this->duration += dt;
 	}
 	else clear();
+}
+
+int Controls::Button::getRepeats (float speed)
+{
+	int temp = presses;
+	presses = 0;
+	return temp;
+	
+	// TODO
+	if (is_pressed) return 1;
+	else            return 0;
 }
 
 Controls::Controls ()

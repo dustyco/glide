@@ -8,13 +8,14 @@ struct Controls
 {
 	struct Button
 	{
-		bool  pressed;
+		int   presses;
+		bool  is_pressed;
 		float duration;
 		
-		     Button    ();
-		void clear     ();
-		void set       (bool pressed, float dt);
-//		int  getRepeat (float speed = 1.0f); TODO
+		     Button     ();
+		void clear      ();
+		void set        (bool is_pressed, float dt);
+		int  getRepeats (float speed = 1.0f);
 	};
 	
 	map<string,Button> buttons;

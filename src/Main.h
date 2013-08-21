@@ -19,6 +19,8 @@ struct Main : SFMLApp
 	
 	void handleInput ();
 	void draw        (vector<ImagePtr>& images);
+	void draw        (ImagePtr& image_ptr);
+	void draw        (Rect rect, sf::Color color, float thickness);
 };
 
 

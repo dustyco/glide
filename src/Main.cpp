@@ -59,6 +59,12 @@ bool Main::loop (int w, int h, double t)
 	vector<ImagePtr> images;
 	layout.getVisible(images);
 	draw(images);
+	if (layout.enlarged)
+	{
+		// Semiblack backdrop
+	}
+	draw(layout.select_image_ptr);
+	draw(layout.select_frame.current, sf::Color(255, 200, 30), 0.01);
 	
 	// TODO
 /*	// Image name
@@ -115,14 +121,27 @@ void Main::handleInput ()
 			case sf::Event::MouseButtonPressed:
 				switch (event.mouseButton.button)
 				{
-//					case sf::Mouse::Left:       finalizeObject(); break;
-//					case sf::Mouse::Right:      placePoint(); break;
+					case sf::Mouse::Left:       ++c.buttons["mouse_select"].presses; break;
+					case sf::Mouse::Right:      ++c.buttons["mouse_context"].presses; break;
 				}
 				break;
 			case sf::Event::KeyPressed:
 				switch (event.key.code)
 				{
-					case sf::Keyboard::Escape:  running = false; return;
+					case sf::Keyboard::Escape: running = false; return;
+					
+					case sf::Keyboard::Up:     ++c.buttons["up"].presses; break;
+					case sf::Keyboard::Down:   ++c.buttons["down"].presses; break;
+					case sf::Keyboard::Left:   ++c.buttons["left"].presses; break;
+					case sf::Keyboard::Right:  ++c.buttons["right"].presses; break;
+					
+					case sf::Keyboard::W:      ++c.buttons["up"].presses; break;
+					case sf::Keyboard::S:      ++c.buttons["down"].presses; break;
+					case sf::Keyboard::A:      ++c.buttons["left"].presses; break;
+					case sf::Keyboard::D:      ++c.buttons["right"].presses; break;
+					
+					case sf::Keyboard::Return: ++c.buttons["select"].presses; break;
+					case sf::Keyboard::Space:  ++c.buttons["select"].presses; break;
 				}
 				break;
 		}
@@ -154,7 +173,7 @@ void Main::handleInput ()
 	c.buttons["lanes9"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Num9), dt);
 	
 	c.buttons["toggle_edit"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::E), dt);
-	c.buttons["select"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Return), dt);
+	c.buttons["select"].set(sf::Keyboard::isKeyPressed(sf::Keyboard::Return) || sf::Keyboard::isKeyPressed(sf::Keyboard::Space), dt);
 	
 //	sf::Vector2i sf_mouse_pos = sf::Mouse::getPosition(window);
 //	mouse = viewTransformInverse(Vec(sf_mouse_pos.x, sf_mouse_pos.y));
@@ -162,63 +181,78 @@ void Main::handleInput ()
 
 void Main::draw (vector<ImagePtr>& images)
 {
-//	cout << endl << "Rendering " << images.size() << " images" << endl;
-	for (ImagePtr& image_ptr : images)
+	for (ImagePtr& image_ptr : images) draw(image_ptr);
+}
+
+void Main::draw (ImagePtr& image_ptr)
+{
+	Image& image = *image_ptr;
+	lock_guard<mutex> l(image);
+	
+	/////////////////////////////////////////////////////////////////
+	// Create/resize texture if necessary and new pixels aren't loading
+	/////////////////////////////////////////////////////////////////
+	
+	if (!image.loading)
 	{
-		Image& image = *image_ptr;
-		lock_guard<mutex> l(image);
-		
-		/////////////////////////////////////////////////////////////////
-		// Create/resize texture if necessary and new pixels aren't loading
-		/////////////////////////////////////////////////////////////////
-		
-		if (!image.loading)
+		// If there is a texture, pixels are available, but they're different sizes
+		if (image.texture != NULL && image.loaded == true && ((sf::Texture*)image.texture)->getSize().x != image.dim_loaded.x)
 		{
-			// If there is a texture, pixels are available, but they're different sizes
-			if (image.texture != NULL && image.loaded == true && ((sf::Texture*)image.texture)->getSize().x != image.dim_loaded.x)
+			// Delete the texture
+			delete (sf::Texture*)image.texture;
+			image.texture = NULL;
+		}
+		
+		// If there's no texture and pixels are available
+		if (image.texture == NULL && image.loaded == true)
+		{
+			// Try to create a texture
+			image.texture = (void*)new sf::Texture;
+			((sf::Texture*)image.texture)->setSmooth(true);
+			if (!((sf::Texture*)image.texture)->create(image.dim_loaded.x, image.dim_loaded.y))
 			{
-				// Delete the texture
+				// Failed to create texture
+				cout << "Main::draw(): Failed to create texture";
 				delete (sf::Texture*)image.texture;
 				image.texture = NULL;
+				image.unload();
+				image.failed = true;
 			}
-			
-			// If there's no texture and pixels are available
-			if (image.texture == NULL && image.loaded == true)
-			{
-				// Try to create a texture
-				image.texture = (void*)new sf::Texture;
-				((sf::Texture*)image.texture)->setSmooth(true);
-				if (!((sf::Texture*)image.texture)->create(image.dim_loaded.x, image.dim_loaded.y))
-				{
-					// Failed to create texture
-					cout << "Main::draw(): Failed to create texture";
-					delete (sf::Texture*)image.texture;
-					image.texture = NULL;
-					image.unload();
-					image.failed = true;
-				}
-				else ((sf::Texture*)image.texture)->update(image.pixels);
-			}
-		}
-		
-		/////////////////////////////////////////////////////////////////
-		// Draw it if the texture is ready
-		/////////////////////////////////////////////////////////////////
-		
-		if (image.texture != NULL)
-		{
-			// Draw it
-			sf::Texture& texture = *(sf::Texture*)image.texture;
-			sf::Sprite sprite(texture);
-			
-			sprite.setOrigin(float(texture.getSize().x)/2, float(texture.getSize().y)/2);
-			sprite.setScale(image.current.rx*2/float(texture.getSize().x), image.current.ry*2/float(texture.getSize().y));
-			sprite.setPosition(image.current.p.x, image.current.p.y);
-			
-			window.draw(sprite);
-			
+			else ((sf::Texture*)image.texture)->update(image.pixels);
 		}
 	}
+	
+	/////////////////////////////////////////////////////////////////
+	// Draw it if the texture is ready
+	/////////////////////////////////////////////////////////////////
+	
+	if (image.texture != NULL)
+	{
+		// Draw it
+		sf::Texture& texture = *(sf::Texture*)image.texture;
+		sf::Sprite sprite(texture);
+		
+		sprite.setOrigin(float(texture.getSize().x)/2, float(texture.getSize().y)/2);
+		sprite.setScale(image.current.rx*2/float(texture.getSize().x), image.current.ry*2/float(texture.getSize().y));
+		sprite.setPosition(image.current.p.x, image.current.p.y);
+		
+		window.draw(sprite);
+		
+	}
+}
+
+void Main::draw (Rect rect, sf::Color color, float thickness)
+{
+	sf::RectangleShape sf_rect;
+	sf_rect.setPosition(sf::Vector2f(rect.p.x, rect.p.y));
+	sf_rect.setSize(sf::Vector2f(rect.rx*2, rect.ry*2));
+	sf_rect.setOrigin(sf::Vector2f(rect.rx, rect.ry));
+	
+	sf_rect.setOutlineThickness(thickness);
+	sf_rect.setOutlineColor(color);
+	sf_rect.setFillColor(sf::Color(0, 0, 0, 0));
+
+	window.draw(sf_rect);
 }
 
 int main (int argc, char const** argv)

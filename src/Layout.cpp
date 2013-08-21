@@ -11,6 +11,8 @@ Layout::Layout ()
 	t = 0;
 	mode = HORIZONTAL;
 	lane_count = 5;
+	select_set = false;
+	enlarged = false;
 }
 
 void Layout::add (vector<ImagePtr>& images)
@@ -29,20 +31,85 @@ void Layout::tick (float dt)
 	Controls& controls = Controls::getSingleton();
 	Camera& camera = Camera::getSingleton();
 	
-	int temp_lane_count = lane_count;
-	if (controls.buttons["lanes1"].pressed) lane_count = 1;
-	if (controls.buttons["lanes2"].pressed) lane_count = 2;
-	if (controls.buttons["lanes3"].pressed) lane_count = 3;
-	if (controls.buttons["lanes4"].pressed) lane_count = 4;
-	if (controls.buttons["lanes5"].pressed) lane_count = 5;
-	if (controls.buttons["lanes6"].pressed) lane_count = 6;
-	if (controls.buttons["lanes7"].pressed) lane_count = 7;
-	if (controls.buttons["lanes8"].pressed) lane_count = 8;
-	if (controls.buttons["lanes9"].pressed) lane_count = 9;
-	if (temp_lane_count != lane_count) arrange();
+	// Handle input
+	if (!images.empty())
+	{
+		// Change lane count
+		int temp_lane_count = lane_count;
+		if (controls.buttons["lanes1"].is_pressed) lane_count = 1;
+		if (controls.buttons["lanes2"].is_pressed) lane_count = 2;
+		if (controls.buttons["lanes3"].is_pressed) lane_count = 3;
+		if (controls.buttons["lanes4"].is_pressed) lane_count = 4;
+		if (controls.buttons["lanes5"].is_pressed) lane_count = 5;
+		if (controls.buttons["lanes6"].is_pressed) lane_count = 6;
+		if (controls.buttons["lanes7"].is_pressed) lane_count = 7;
+		if (controls.buttons["lanes8"].is_pressed) lane_count = 8;
+		if (controls.buttons["lanes9"].is_pressed) lane_count = 9;
+		if (temp_lane_count != lane_count) arrange();
+		
+		// Init selection if there isn't one
+		selectImage();
+		
+		// Move selection
+		if (!enlarged)
+		{
+			if (mode == HORIZONTAL)
+			{
+				for (int i=controls.buttons["up"].getRepeats(); i>0; --i)
+				if (select_lane > 0)
+				{
+					// Move to lane above and image with nearest x position
+				//	--select_lane;
+				}
+			
+				for (int i=controls.buttons["down"].getRepeats(); i>0; --i)
+				if (select_lane < lanes.size()-1)
+				{
+					// Move to lane below and image with nearest x position
+				//	--select_lane;
+				}
+			
+				for (int i=controls.buttons["left"].getRepeats(); i>0; --i)
+				if (select_offset > 0) --select_offset;
+			
+				for (int i=controls.buttons["right"].getRepeats(); i>0; --i)
+				if (select_offset < lanes[select_lane].size()-1) ++select_offset;
+			
+				// Set the ImagePtr for when it changes
+				selectImage();
+			}
+			else if (mode == VERTICAL)
+			{
+			
+			}
+		}
+		
+		// Handle if the image is enlarged
+		if (controls.buttons["select"].getRepeats()%2 == 1) enlarged = !enlarged;
+		if (enlarged)
+		{
+			Image& image = *select_image_ptr;
+			lock_guard<mutex> l(image);
+			
+			// TODO Handle case when mode is vertical
+			image.target.p.x = select_image_original_rect.p.x;
+			image.target.p.y = 0.5;
+			
+			// TODO Implement getAspect() member functions for Image and Camera
+			// TODO Handle when image is wider than camera (image_aspect > camera_aspect)
+			float image_aspect = float(image.dim_full.x)/image.dim_full.y;
+			float camera_aspect = float(camera.dim.x)/camera.dim.y;
+			image.target.rx = 0.5*image_aspect;
+			image.target.ry = 0.5;
+		}
+		else
+		{
+			select_image_ptr->target = select_image_original_rect;
+		}
+		select_frame.target = select_image_ptr->target;
+	}
 	
 	t += dt;
-//	arrange();
 	
 	// Move images
 	for (ImagePtr& image_ptr : images)
@@ -58,21 +125,20 @@ void Layout::tick (float dt)
 		if (should_submit) res_man.submit(image_ptr);
 	}
 	
-	// Update camera
+	// Tween selection rectangle
+	select_frame.tween(dt);
+	
+	// Camera size and tween
 	camera.target.rx = 0.5*camera.dim.x/camera.dim.y;
 	camera.target.ry = 0.5;
-	
-	camera.target.p = Vec2f(cos(t/3)+1+camera.target.rx, 0.5);
-//	camera.target.p = Vec2f::ORIGIN;
-	
 	camera.tween(dt);
 	
 }
 
+// Pack images into lanes with the requested lane_count and mode
+// Assume images are sorted by name
 void Layout::arrange ()
 {
-	// Pack images into lanes with the requested lane_count and mode
-	// Assume images are sorted by name
 	lanes.clear();
 	lanes.resize(lane_count);
 	vector<float> ends(lane_count, 0);
@@ -93,7 +159,15 @@ void Layout::arrange ()
 			image_ptr->target.p.x = ends[shortest] + width*0.5;
 			image_ptr->target.ry = 0.5/lane_count;
 			image_ptr->target.rx = width*0.5;
-		
+			
+			// Reassign selection indices if this is it
+			if (select_set && image_ptr == select_image_ptr)
+			{
+				select_lane = shortest;
+				select_offset = lanes[shortest].size()-1;
+				selectImage(false);
+			}
+			
 			// Move the lane's end
 			ends[shortest] += width;
 		}
@@ -159,6 +233,30 @@ void Layout::getVisible (vector<ImagePtr>& images)
 {
 	// TODO Culling
 	images = this->images;
+}
+
+// TODO Make this thread safe
+void Layout::selectImage (bool reset_current_rect)
+{
+	if (!images.empty())
+	{
+		if (!select_set)
+		{
+			select_set = true;
+			select_lane = 0;
+			select_offset = 0;
+		}
+		else if (reset_current_rect)
+		{
+			// Reset the current selected Image's position if there was one in case it's enlarged
+			select_image_ptr->target = select_image_original_rect;
+		}
+		select_image_ptr = lanes[select_lane][select_offset];
+		select_image_original_rect = select_image_ptr->target;
+			
+		// Move camera
+		Camera::getSingleton().target.p = Vec2f(select_image_original_rect.p.x, 0.5);
+	}
 }
 
 

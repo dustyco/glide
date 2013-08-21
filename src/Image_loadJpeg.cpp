@@ -3,12 +3,11 @@
 #include "Image.h"
 #include <cstdio>
 #include <cmath>
+#include <sstream>
 #include <jpeglib.h>
-
-#include <mutex>
 #include <iostream>
-mutex term;
 
+// TODO MAKE THIS MEMORY SAFE FOR GOD'S SAKE
 void Image::loadJpeg (string path, int x_preferred) throw(string)
 {
 //	lock_guard<mutex> l(term);
@@ -34,23 +33,54 @@ void Image::loadJpeg (string path, int x_preferred) throw(string)
 	// Set decompression options
 //	d.scale_num = getJpegDecodeScale(d.image_width, x_preferred);
 	Vec2i dim_libjpeg(d.image_width, d.image_height);
+	
+	// Make sure the output colorspace is RGB
+	if (d.jpeg_color_space == JCS_GRAYSCALE) d.out_color_space = JCS_RGB;
+	if (d.out_color_space != JCS_RGB)
+	{
+		stringstream ss;
+		ss << "Image::loadJpeg(): Unsupported colorspace: ";
+		switch (d.jpeg_color_space)
+		{
+			case JCS_UNKNOWN:   ss << "UNKNOWN";   break;
+			case JCS_GRAYSCALE: ss << "GRAYSCALE"; break;
+			case JCS_RGB:       ss << "RGB";       break;
+			case JCS_YCbCr:     ss << "YCbCr";     break;
+			case JCS_CMYK:      ss << "CMYK";      break;
+			case JCS_YCCK:      ss << "YCCK";      break;
+			default:            ss << d.jpeg_color_space;
+		}
+		ss << " to ";
+		switch (d.out_color_space)
+		{
+			case JCS_UNKNOWN:   ss << "UNKNOWN";   break;
+			case JCS_GRAYSCALE: ss << "GRAYSCALE"; break;
+			case JCS_RGB:       ss << "RGB";       break;
+			case JCS_YCbCr:     ss << "YCbCr";     break;
+			case JCS_CMYK:      ss << "CMYK";      break;
+			case JCS_YCCK:      ss << "YCCK";      break;
+			default:            ss << d.out_color_space;
+		}
+		ss << endl;
+		throw ss.str();
+		// TODO
+	}
+	
 	if (dim_libjpeg != dim_full)
 	{
+		// TODO
 		cout << "Mismatching dims: readFileInfo(): " << dim_full << "    " << path << endl;
 		cout << "                      loadJpeg(): " << dim_libjpeg << endl;
 	}
 	d.scale_num = getJpegDecodeScale(dim_full.x, x_preferred);
 	d.scale_denom = 8;
 	jpeg_scale = d.scale_num;
-//	cout << "scale: " << d.scale_num << "/" << d.scale_denom << endl;
 	
 	// Get calculated size if it's being scaled
 	jpeg_calc_output_dimensions(&d);
-//	cout << "output size: " << d.output_width << "x" << d.output_height << " px"<< endl;
 	dim_loaded = Vec2i(d.output_width, d.output_height);
 	
 	// Decompress
-	d.output_components = 3;
 	if (d.output_components != 3)
 	{
 		// TODO Throw an error or convert to 3
