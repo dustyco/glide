@@ -59,14 +59,28 @@ void Layout::tick (float dt)
 				if (select_lane > 0)
 				{
 					// Move to lane above and image with nearest x position
-				//	--select_lane;
+					--select_lane;
+					select_offset = 0;
+					float x = select_image_ptr->target.p.x;
+					for (const ImagePtr& ip : lanes[select_lane])
+					{
+						if (ip->target.p.x+ip->target.rx > x) break;
+						else ++select_offset;
+					}
 				}
 			
 				for (int i=controls.buttons["down"].getRepeats(); i>0; --i)
 				if (select_lane < lanes.size()-1)
 				{
-					// Move to lane below and image with nearest x position
-				//	--select_lane;
+					// Move to lane below and the image whos frame overlaps the x center
+					++select_lane;
+					select_offset = 0;
+					float x = select_image_ptr->target.p.x;
+					for (const ImagePtr& ip : lanes[select_lane])
+					{
+						if (ip->target.p.x+ip->target.rx > x) break;
+						else ++select_offset;
+					}
 				}
 			
 				for (int i=controls.buttons["left"].getRepeats(); i>0; --i)
