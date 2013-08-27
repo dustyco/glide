@@ -67,6 +67,7 @@ void Layout::tick (float dt)
 						if (ip->target.p.x+ip->target.rx > x) break;
 						else ++select_offset;
 					}
+					if (select_offset > lanes[select_lane].size()-1) --select_offset;
 				}
 			
 				for (int i=controls.buttons["down"].getRepeats(); i>0; --i)
@@ -81,6 +82,7 @@ void Layout::tick (float dt)
 						if (ip->target.p.x+ip->target.rx > x) break;
 						else ++select_offset;
 					}
+					if (select_offset > lanes[select_lane].size()-1) --select_offset;
 				}
 			
 				for (int i=controls.buttons["left"].getRepeats(); i>0; --i)
