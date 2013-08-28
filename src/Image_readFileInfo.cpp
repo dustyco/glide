@@ -5,7 +5,9 @@
 #include <cstring>
 #include <jpeglib.h>
 
+#ifdef __unix__
 #define ENDIAN_MACROS
+#endif
 #ifdef ENDIAN_MACROS
 	#include <arpa/inet.h>
 #endif

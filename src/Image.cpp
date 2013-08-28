@@ -2,7 +2,9 @@
 
 #include "Image.h"
 #include "Camera.h"
-#include <dirent.h>
+#ifdef __unix__
+	#include <dirent.h>
+#endif
 #include <algorithm>
 #include <boost/filesystem/path.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -44,7 +46,8 @@ void Image::loadEdit ()
 	BoostPath filename = bp.filename();
 	BoostPath edit_path = parent_path += BoostPath("/.") += filename += BoostPath(".edit");
 	
-	try { ((Edit*)this)->loadEdit(edit_path.native()); }
+	boost::filesystem::path::string_type bs = edit_path.native();
+	try { ((Edit*)this)->loadEdit(string(bs.begin(), bs.end())); }
 	catch (string s) {}
 }
 
@@ -57,12 +60,14 @@ void Image::saveEdit ()
 	BoostPath filename = bp.filename();
 	BoostPath edit_path = parent_path += BoostPath("/.") += filename += BoostPath(".edit");
 	
-	try { ((Edit*)this)->saveEdit(edit_path.native()); }
+	boost::filesystem::path::string_type bs = edit_path.native();
+	try { ((Edit*)this)->saveEdit(string(bs.begin(), bs.end())); }
 	catch (string s) {}
 }
 
 void Image::createImages (vector<ImagePtr>& images, string path) throw(string)
 {
+#ifdef __unix__
 	images.clear();
 	
 	DIR*    dir = opendir(path.c_str());
@@ -100,6 +105,7 @@ void Image::createImages (vector<ImagePtr>& images, string path) throw(string)
     
     // Sort by name
 	sort(images.begin(), images.end(), CompareName());
+#endif
 }
 
 // Considers the difference between cooresponding

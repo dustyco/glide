@@ -3,7 +3,6 @@
 #include "Main.h"
 #include "Camera.h"
 #include "Controls.h"
-#include <X11/Xlib.h>
 #include <SFML/Graphics/Texture.hpp>
 
 
@@ -257,7 +256,6 @@ void Main::draw (Rect rect, sf::Color color, float thickness)
 
 int main (int argc, char const** argv)
 {
-	XInitThreads();
 	Main app;
 	try
 	{

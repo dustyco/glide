@@ -47,8 +47,6 @@ target_link_libraries(${target_NAME}
 	${Boost_SYSTEM_LIBRARY}
 	${Boost_FILESYSTEM_LIBRARY}
 	${JPEG_LIBRARY}
-	pthread
-	X11
 )
 
 # Copy data assets

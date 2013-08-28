@@ -48,8 +48,10 @@ message("OPENGL_gl_LIBRARY: ${OPENGL_gl_LIBRARY}")
 # Find SFML
 #########################################################
 
+if (NOT "$ENV{SFML_ROOT}" STREQUAL "")
+	set(CMAKE_MODULE_PATH $ENV{SFML_ROOT}/cmake/Modules ${CMAKE_MODULE_PATH})
+endif ()
 if (MSVC)
-	set(CMAKE_MODULE_PATH $ENV{SFMLDIR}/cmake/Modules ${CMAKE_MODULE_PATH})
 	set(SFML_STATIC_LIBRARIES TRUE)
 endif ()
 find_package(SFML REQUIRED COMPONENTS system window graphics)
@@ -63,6 +65,10 @@ set(SFML_LIBRARIES ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY} ${SFML_LIBRARIES})
 # Find Boost
 #########################################################
 
+if(MSVC)
+	set(Boost_USE_STATIC_LIBS TRUE)
+endif()
+message("Boost_USE_STATIC_LIBS: ${Boost_USE_STATIC_LIBS}")
 set(BOOST_COMPONENTS
 	system
 	filesystem
@@ -77,6 +83,10 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 # Find JPEG
 #########################################################
 
+if (NOT "$ENV{JPEG_ROOT}" STREQUAL "")
+	set (CMAKE_INCLUDE_PATH "$ENV{JPEG_ROOT}/include;${CMAKE_INCLUDE_PATH}")
+	set (CMAKE_LIBRARY_PATH "$ENV{JPEG_ROOT}/lib;${CMAKE_LIBRARY_PATH}")
+endif ()
 find_package(JPEG REQUIRED)
 include_directories(${JPEG_INCLUDE_DIR})
 message("JPEG_LIBRARY: ${JPEG_LIBRARY}")
