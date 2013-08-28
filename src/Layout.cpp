@@ -96,7 +96,7 @@ void Layout::tick (float dt)
 			}
 			else if (mode == VERTICAL)
 			{
-			
+				// TODO
 			}
 		}
 		
@@ -127,7 +127,50 @@ void Layout::tick (float dt)
 	
 	t += dt;
 	
-	// Move images
+	// Tween selection rectangle
+	select_frame.tween(dt);
+	
+	/////////////////////////////////////////////////////////////////
+	// Move and animate Camera
+	/////////////////////////////////////////////////////////////////
+	
+	{
+		lock_guard<mutex> l(camera);
+		Rect& ct = camera.target;
+		
+		// Set shape/size
+		camera.target.rx = 0.5*camera.dim.x/camera.dim.y;
+		camera.target.ry = 0.5;
+	
+		// Move it in to avoid empty areas
+		if (mode == HORIZONTAL)
+		{
+			// Do the right side first
+			// Determine longest lane
+			float farthest = 0;
+			for (const auto& lane : lanes)
+			{
+				float edge = lane.back()->target.p.x + lane.back()->target.rx;
+				if (edge > farthest) farthest = edge;
+			}
+			if (camera.target.p.x+camera.target.rx > farthest) camera.target.p.x = farthest - camera.target.rx;
+			
+			// Now do the left side
+			if (camera.target.p.x-camera.target.rx < 0) camera.target.p.x = camera.target.rx;
+		}
+		else if (mode == VERTICAL)
+		{
+			// TODO
+		}
+	
+		// Animate it
+		camera.tween(dt);
+	}
+	
+	/////////////////////////////////////////////////////////////////
+	// Animate and submit Images for a resource check
+	/////////////////////////////////////////////////////////////////
+	
 	for (ImagePtr& image_ptr : images)
 	{
 		bool should_submit = false;
@@ -140,14 +183,6 @@ void Layout::tick (float dt)
 		}
 		if (should_submit) res_man.submit(image_ptr);
 	}
-	
-	// Tween selection rectangle
-	select_frame.tween(dt);
-	
-	// Camera size and tween
-	camera.target.rx = 0.5*camera.dim.x/camera.dim.y;
-	camera.target.ry = 0.5;
-	camera.tween(dt);
 	
 }
 
@@ -189,7 +224,7 @@ void Layout::arrange ()
 		}
 		else if (mode == VERTICAL)
 		{
-			
+			// TODO
 		}
 	}
 	
