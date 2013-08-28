@@ -102,6 +102,7 @@ void Layout::tick (float dt)
 		
 		// Handle if the image is enlarged
 		if (controls.buttons["select"].getRepeats()%2 == 1) enlarged = !enlarged;
+		if (lanes.size() == 1) enlarged = false;
 		if (enlarged)
 		{
 			Image& image = *select_image_ptr;
