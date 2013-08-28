@@ -99,42 +99,15 @@ void Layout::tick (float dt)
 				// TODO
 			}
 		}
-		
-		// Handle if the image is enlarged
-		if (controls.buttons["select"].getRepeats()%2 == 1) enlarged = !enlarged;
-		if (lanes.size() == 1) enlarged = false;
-		if (enlarged)
-		{
-			Image& image = *select_image_ptr;
-			lock_guard<mutex> l(image);
-			
-			// TODO Handle case when mode is vertical
-			image.target.p.x = select_image_original_rect.p.x;
-			image.target.p.y = 0.5;
-			
-			// TODO Implement getAspect() member functions for Image and Camera
-			// TODO Handle when image is wider than camera (image_aspect > camera_aspect)
-			float image_aspect = float(image.dim_full.x)/image.dim_full.y;
-			float camera_aspect = float(camera.dim.x)/camera.dim.y;
-			image.target.rx = 0.5*image_aspect;
-			image.target.ry = 0.5;
-		}
-		else
-		{
-			select_image_ptr->target = select_image_original_rect;
-		}
-		select_frame.target = select_image_ptr->target;
 	}
 	
 	t += dt;
-	
-	// Tween selection rectangle
-	select_frame.tween(dt);
 	
 	/////////////////////////////////////////////////////////////////
 	// Move and animate Camera
 	/////////////////////////////////////////////////////////////////
 	
+	if (!images.empty())
 	{
 		lock_guard<mutex> l(camera);
 		Rect& ct = camera.target;
@@ -163,6 +136,52 @@ void Layout::tick (float dt)
 		{
 			// TODO
 		}
+		
+		// Handle if the image is enlarged
+		// TODO I don't know if this whole thing needs to be changed for vertical mode
+		if (controls.buttons["select"].getRepeats()%2 == 1) enlarged = !enlarged;
+		if (lanes.size() == 1) enlarged = false;
+		{
+			Image& image = *select_image_ptr;
+			lock_guard<mutex> l(image);
+			
+			float image_aspect = float(image.dim_full.x)/image.dim_full.y;
+			float camera_aspect = float(camera.dim.x)/camera.dim.y;
+			float k = camera_aspect/image_aspect;
+			if (enlarged)
+			{
+				if (image_aspect < camera_aspect)
+				{
+					// Image is taller than camera
+					image.target.rx = 0.5*image_aspect;
+					image.target.ry = 0.5;
+				}
+				else
+				{
+					// Image is wider than camera
+					image.target.rx = 0.5*image_aspect*k;
+					image.target.ry = 0.5*k;
+				}
+			
+				// Put it at the center of the camera
+				image.target.p = camera.target.p;
+			}
+			else
+			{
+				select_image_ptr->target = select_image_original_rect;
+			
+				// If this there is only 1 lane and the current image is too wide to fit in camera
+				if (lanes.size() == 1 && image_aspect > camera_aspect)
+				{
+					// Make the camera bigger
+					camera.target.rx /= k;
+					camera.target.ry /= k;
+				}
+			}
+		}
+		
+		// Selection highlight follows image
+		select_frame.target = select_image_ptr->target;
 	
 		// Animate it
 		camera.tween(dt);
@@ -185,6 +204,8 @@ void Layout::tick (float dt)
 		if (should_submit) res_man.submit(image_ptr);
 	}
 	
+	// Tween selection rectangle
+	select_frame.tween(dt);
 }
 
 // Pack images into lanes with the requested lane_count and mode
