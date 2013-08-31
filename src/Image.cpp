@@ -2,11 +2,10 @@
 
 #include "Image.h"
 #include "Camera.h"
-#ifdef __unix__
-	#include <dirent.h>
-#endif
+#include <iterator>
+#include <vector>
 #include <algorithm>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
 
@@ -67,45 +66,44 @@ void Image::saveEdit ()
 
 void Image::createImages (vector<ImagePtr>& images, string path) throw(string)
 {
-#ifdef __unix__
-	images.clear();
+	using namespace boost::filesystem;
 	
-	DIR*    dir = opendir(path.c_str());
-	dirent* dir_entry;
-	if (dir == NULL) throw string("Image::createImages: Failed to open path");
-	
-	for (dir_entry=readdir(dir); dir_entry!=NULL; dir_entry=readdir(dir))
+//	vector<path> paths;
+	for (directory_iterator it(path); it != directory_iterator(); ++it)
 	{
-		switch (dir_entry->d_type)
+		// directory_iterator dereferences to directory_entry
+		if (it->status().type() == regular_file)
 		{
-			case DT_UNKNOWN: break;
-			case DT_LNK: break;
-			case DT_REG:
-				string file_name = dir_entry->d_name;
-				string file_path = path + "/" + file_name;
-				
-				// Skip blank or hidden
-				if (file_name.empty() || (file_name[0] == '.')) break;
-				
-				// Try to get header info
-				int w, h;
-				Format format;
-				try { readFileInfo(file_path, format, w, h); }
-				catch (string s) { break; }
-				
-				// TODO We only support JPEG right now
-				if (format!=JPEG) break;
-				
-				// Add it
-				images.push_back(make_shared<Image>(file_path, format, Vec2i(w, h)));
-				break;
+			boost::filesystem::path p = it->path();
+			boost::filesystem::path::string_type w_file_name = p.filename().native();
+			boost::filesystem::path::string_type w_file_path = p.native();
+			
+			string file_name(w_file_name.begin(), w_file_name.end());
+			string file_path(w_file_path.begin(), w_file_path.end());
+			
+			// Skip blank or hidden
+			if (file_name.empty() || (file_name[0] == '.')) continue;
+			
+			// Try to get header info
+			int w, h;
+			Format format;
+			try { readFileInfo(file_path, format, w, h); }
+			catch (string s) { continue; }
+			
+			// TODO We only support JPEG right now
+			if (format!=JPEG) continue;
+			
+			// Add it
+			images.push_back(make_shared<Image>(file_path, format, Vec2i(w, h)));
 		}
 	}
-    if (dir) closedir(dir);
-    
-    // Sort by name
+	
+	// TODO Human readable sort
 	sort(images.begin(), images.end(), CompareName());
-#endif
+	cout << "Images: " << images.size() << endl;
+	
+	// TODO Human readable sort
+//	sort(paths.begin(), paths.end());
 }
 
 // Considers the difference between cooresponding
